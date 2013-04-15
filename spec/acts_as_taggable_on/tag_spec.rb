@@ -6,14 +6,14 @@ describe ActsAsTaggableOn::Tag do
   before(:each) do
     clean_database!
     @tag = ActsAsTaggableOn::Tag.new
-    @user = TaggableModel.create(:name => "Pablo")
+    @user = TaggableModel.create!(:name => "Pablo")
   end
 
   describe "named like any" do
     before(:each) do
-      ActsAsTaggableOn::Tag.create(:name => "Awesome")
-      ActsAsTaggableOn::Tag.create(:name => "awesome")
-      ActsAsTaggableOn::Tag.create(:name => "epic")
+      ActsAsTaggableOn::Tag.create!(:name => "Awesome")
+      ActsAsTaggableOn::Tag.create!(:name => "awesome")
+      ActsAsTaggableOn::Tag.create!(:name => "epic")
     end
 
     it "should find both tags" do
@@ -24,7 +24,7 @@ describe ActsAsTaggableOn::Tag do
   describe "find or create by name" do
     before(:each) do
       @tag.name = "awesome"
-      @tag.save
+      @tag.save!
     end
 
     it "should find by name" do
@@ -36,9 +36,9 @@ describe ActsAsTaggableOn::Tag do
     end
 
     it "should create by name" do
-      lambda {
+      expect {
         ActsAsTaggableOn::Tag.find_or_create_with_like_by_name("epic")
-      }.should change(ActsAsTaggableOn::Tag, :count).by(1)
+      }.to change(ActsAsTaggableOn::Tag, :count).by(1)
     end
   end
 
@@ -46,7 +46,7 @@ describe ActsAsTaggableOn::Tag do
     describe "find or create by unicode name" do
       before(:each) do
         @tag.name = "привет"
-        @tag.save
+        @tag.save!
       end
 
       it "should find by name" do
@@ -62,7 +62,7 @@ describe ActsAsTaggableOn::Tag do
   describe "find or create all by any name" do
     before(:each) do
       @tag.name = "awesome"
-      @tag.save
+      @tag.save!
     end
 
     it "should find by name" do
@@ -74,15 +74,15 @@ describe ActsAsTaggableOn::Tag do
     end
 
     it "should create by name" do
-      lambda {
+      expect {
         ActsAsTaggableOn::Tag.find_or_create_all_with_like_by_name("epic")
-      }.should change(ActsAsTaggableOn::Tag, :count).by(1)
+      }.to change(ActsAsTaggableOn::Tag, :count).by(1)
     end
 
     it "should find or create by name" do
-      lambda {
+      expect {
         ActsAsTaggableOn::Tag.find_or_create_all_with_like_by_name("awesome", "epic").map(&:name).should == ["awesome", "epic"]
-      }.should change(ActsAsTaggableOn::Tag, :count).by(1)
+      }.to change(ActsAsTaggableOn::Tag, :count).by(1)
     end
 
     it "should return an empty array if no tags are specified" do
@@ -138,7 +138,7 @@ describe ActsAsTaggableOn::Tag do
   describe "escape wildcard symbols in like requests" do
     before(:each) do
       @tag.name = "cool"
-      @tag.save
+      @tag.save!
       @another_tag = ActsAsTaggableOn::Tag.create!(:name => "coo%")
       @another_tag2 = ActsAsTaggableOn::Tag.create!(:name => "coolish")
     end
@@ -193,12 +193,12 @@ describe ActsAsTaggableOn::Tag do
         duplicate_tag.stub(:validates_name_uniqueness?).and_return(false)
         duplicate_tag.save
         duplicate_tag.should be_persisted
-      end  
+      end
     end
 
     context "when do need unique names" do
       it "should run uniqueness validation" do
-        duplicate_tag.should_not be_valid        
+        duplicate_tag.should_not be_valid
       end
 
       it "add error to name" do

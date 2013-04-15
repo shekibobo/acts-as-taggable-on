@@ -8,7 +8,7 @@ describe "Acts As Taggable On" do
   it "should provide a class method 'taggable?' that is false for untaggable models" do
     UntaggableModel.should_not be_taggable
   end
-  
+
   describe "Taggable Method Generation To Preserve Order" do
     before(:each) do
       clean_database!
@@ -46,7 +46,7 @@ describe "Acts As Taggable On" do
     it "should have all tag types" do
       @taggable.tag_types.should == [:tags, :languages, :skills, :needs, :offerings]
     end
-    
+
     it "should create a class attribute for preserve tag order" do
       @taggable.class.should respond_to(:preserve_tag_order?)
     end
@@ -54,7 +54,7 @@ describe "Acts As Taggable On" do
     it "should create an instance attribute for preserve tag order" do
       @taggable.should respond_to(:preserve_tag_order?)
     end
-    
+
     it "should respond 'false' to preserve_tag_order?" do
       @taggable.class.preserve_tag_order?.should be_false
     end
@@ -67,13 +67,21 @@ describe "Acts As Taggable On" do
       TaggableModel.should respond_to(:tagged_with, :tag_counts)
     end
 
-    it "should generate a tag_list accessor/setter for each tag type" do
+    it "should generate a tag_list reader for each tag type" do
       @taggable.should respond_to(:tag_list, :skill_list, :language_list)
+    end
+
+    it "should generate a tag_list setter for each tag type" do
       @taggable.should respond_to(:tag_list=, :skill_list=, :language_list=)
     end
 
     it "should generate a tag_list accessor, that includes owned tags, for each tag type" do
       @taggable.should respond_to(:all_tags_list, :all_skills_list, :all_languages_list)
+    end
+
+    describe "dirty methods" do
+      specify { @taggable.should respond_to(:tag_list_changed?, :skill_list_changed?, :language_list_changed?) }
+      specify { @taggable.should respond_to(:tag_list_changes, :skill_list_changes, :language_list_changes) }
     end
   end
 
@@ -84,8 +92,11 @@ describe "Acts As Taggable On" do
       @inherited_different = AlteredInheritingTaggableModel.new(:name => "inherited different")
     end
 
-    it "should pass on tag contexts to STI-inherited models" do
+    it "should pass on tag contexts to STI-inherited models with no changes" do
       @inherited_same.should respond_to(:tag_list, :skill_list, :language_list)
+    end
+
+    it "should pass on tag contexts to STI-inherited models with changes" do
       @inherited_different.should respond_to(:tag_list, :skill_list, :language_list)
     end
 
@@ -98,119 +109,138 @@ describe "Acts As Taggable On" do
     it "should save a model instantiated by Model.find" do
       taggable = TaggableModel.create!(:name => "Taggable")
       found_taggable = TaggableModel.find(taggable.id)
-      found_taggable.save
+      found_taggable.save!
     end
   end
 
   describe "Related Objects" do
-    it "should find related objects based on tag names on context" do
-      taggable1 = TaggableModel.create!(:name => "Taggable 1")
-      taggable2 = TaggableModel.create!(:name => "Taggable 2")
-      taggable3 = TaggableModel.create!(:name => "Taggable 3")
+    context "with a standard taggable model" do
+      let(:taggable1) { TaggableModel.create!(:name => "Taggable 1") }
+      let(:taggable2) { TaggableModel.create!(:name => "Taggable 2") }
+      let(:taggable3) { TaggableModel.create!(:name => "Taggable 3") }
 
-      taggable1.tag_list = "one, two"
-      taggable1.save
+      before do
+        taggable1.tag_list = "one, two"
+        taggable1.save!
 
-      taggable2.tag_list = "three, four"
-      taggable2.save
+        taggable2.tag_list = "three, four"
+        taggable2.save!
 
-      taggable3.tag_list = "one, four"
-      taggable3.save
+        taggable3.tag_list = "one, four"
+        taggable3.save!
+      end
 
-      taggable1.find_related_tags.should include(taggable3)
-      taggable1.find_related_tags.should_not include(taggable2)
+      it "is related objects based on tag names" do
+        taggable1.find_related_tags.should include(taggable3)
+      end
+
+      it "isn't related to objects without shared tags" do
+        taggable1.find_related_tags.should_not include(taggable2)
+      end
+
+      it "isn't related to itself" do
+        taggable1.find_related_tags.should_not include(taggable1)
+      end
     end
 
-    it "should find related objects based on tag names on context - non standard id" do
-      taggable1 = NonStandardIdTaggableModel.create!(:name => "Taggable 1")
-      taggable2 = NonStandardIdTaggableModel.create!(:name => "Taggable 2")
-      taggable3 = NonStandardIdTaggableModel.create!(:name => "Taggable 3")
+    context "with non-standard ids" do
+      let(:taggable1) { NonStandardIdTaggableModel.create!(:name => "Taggable 1") }
+      let(:taggable2) { NonStandardIdTaggableModel.create!(:name => "Taggable 2") }
+      let(:taggable3) { NonStandardIdTaggableModel.create!(:name => "Taggable 3") }
 
-      taggable1.tag_list = "one, two"
-      taggable1.save
+      before do
+        taggable1.tag_list = "one, two"
+        taggable1.save!
 
-      taggable2.tag_list = "three, four"
-      taggable2.save
+        taggable2.tag_list = "three, four"
+        taggable2.save!
 
-      taggable3.tag_list = "one, four"
-      taggable3.save
+        taggable3.tag_list = "one, four"
+        taggable3.save!
+      end
 
-      taggable1.find_related_tags.should include(taggable3)
-      taggable1.find_related_tags.should_not include(taggable2)
+      it "is related objects based on tag names" do
+        taggable1.find_related_tags.should include(taggable3)
+      end
+
+      it "isn't related to objects without shared tags" do
+        taggable1.find_related_tags.should_not include(taggable2)
+      end
+
+      it "isn't related to itself" do
+        taggable1.find_related_tags.should_not include(taggable1)
+      end
     end
 
-    it "should find other related objects based on tag names on context" do
-      taggable1 = TaggableModel.create!(:name => "Taggable 1")
-      taggable2 = OtherTaggableModel.create!(:name => "Taggable 2")
-      taggable3 = OtherTaggableModel.create!(:name => "Taggable 3")
+    context "with taggable objects of different types" do
+      let(:taggable1) { TaggableModel.create!(:name => "Taggable 1") }
+      let(:taggable2) { OtherTaggableModel.create!(:name => "Taggable 2") }
+      let(:taggable3) { OtherTaggableModel.create!(:name => "Taggable 3") }
 
-      taggable1.tag_list = "one, two"
-      taggable1.save
+      before do
+        taggable1.tag_list = "one, two"
+        taggable1.save!
 
-      taggable2.tag_list = "three, four"
-      taggable2.save
+        taggable2.tag_list = "three, four"
+        taggable2.save!
 
-      taggable3.tag_list = "one, four"
-      taggable3.save
+        taggable3.tag_list = "one, four"
+        taggable3.save!
+      end
 
-      taggable1.find_related_tags_for(OtherTaggableModel).should include(taggable3)
-      taggable1.find_related_tags_for(OtherTaggableModel).should_not include(taggable2)
-    end
+      it "is related objects based on tag names" do
+        taggable1.find_related_tags_for(OtherTaggableModel).should include(taggable3)
+      end
 
-    it "should not include the object itself in the list of related objects" do
-      taggable1 = TaggableModel.create!(:name => "Taggable 1")
-      taggable2 = TaggableModel.create!(:name => "Taggable 2")
+      it "isn't related to objects without shared tags" do
+        taggable1.find_related_tags_for(OtherTaggableModel).should_not include(taggable2)
+      end
 
-      taggable1.tag_list = "one"
-      taggable1.save
-
-      taggable2.tag_list = "one, two"
-      taggable2.save
-
-      taggable1.find_related_tags.should include(taggable2)
-      taggable1.find_related_tags.should_not include(taggable1)
-    end
-
-    it "should not include the object itself in the list of related objects - non standard id" do
-      taggable1 = NonStandardIdTaggableModel.create!(:name => "Taggable 1")
-      taggable2 = NonStandardIdTaggableModel.create!(:name => "Taggable 2")
-
-      taggable1.tag_list = "one"
-      taggable1.save
-
-      taggable2.tag_list = "one, two"
-      taggable2.save
-
-      taggable1.find_related_tags.should include(taggable2)
-      taggable1.find_related_tags.should_not include(taggable1)
+      it "isn't related to itself" do
+        taggable1.find_related_tags.should_not include(taggable1)
+      end
     end
 
 		context "Ignored Tags" do
 			let(:taggable1) { TaggableModel.create!(:name => "Taggable 1") }
 			let(:taggable2) { TaggableModel.create!(:name => "Taggable 2") }
 			let(:taggable3) { TaggableModel.create!(:name => "Taggable 3") }
+      let(:taggable4) { TaggableModel.create!(:name => "Taggable 4") }
+
 			before(:each) do
 				taggable1.tag_list = "one, two, four"
-				taggable1.save
+				taggable1.save!
 
 				taggable2.tag_list = "two, three"
-				taggable2.save
+				taggable2.save!
 
 				taggable3.tag_list = "one, three"
-				taggable3.save
+				taggable3.save!
+
+        taggable4.tag_list = "four"
+        taggable4.save!
 			end
-			it "should not include ignored tags in related search" do
+
+			it "does not return objects tagged with ignored tags" do
 				taggable1.find_related_tags(:ignore => 'two').should_not include(taggable2)
-				taggable1.find_related_tags(:ignore => 'two').should include(taggable3)
 			end
 
-			it "should accept array of ignored tags" do
-				taggable4 = TaggableModel.create!(:name => "Taggable 4")
-				taggable4.tag_list = "four"
-				taggable4.save
+      it "still finds objects tagged with non-ignored tags" do
+        taggable1.find_related_tags(:ignore => 'two').should include(taggable3)
+      end
 
-				taggable1.find_related_tags(:ignore => ['two', 'four']).should_not include(taggable2)
-				taggable1.find_related_tags(:ignore => ['two', 'four']).should_not include(taggable4)
+      context "with arrays of ignored tags" do
+        it "excludes objects tagged with any of the ignored tags" do
+				  taggable1.find_related_tags(:ignore => ['two', 'four']).should_not include(taggable2)
+        end
+
+        it "excludes objects tagged with any of the ignored tags" do
+  				taggable1.find_related_tags(:ignore => ['two', 'four']).should_not include(taggable4)
+        end
+
+        it "still includes objects tagged with non-ignored tags" do
+          taggable1.find_related_tags(:ignore => ['two', 'four']).should include(taggable3)
+        end
 			end
 
 			it "should accept symbols as ignored tags" do
@@ -219,137 +249,153 @@ describe "Acts As Taggable On" do
 		end
 
     context "Inherited Models" do
+      let(:taggable1) { InheritingTaggableModel.create!(:name => "InheritingTaggable 1") }
+      let(:taggable2) { InheritingTaggableModel.create!(:name => "InheritingTaggable 2") }
+      let(:taggable3) { InheritingTaggableModel.create!(:name => "InheritingTaggable 3") }
+      let(:taggable4) { TaggableModel.create!(:name => "Taggable 4") }
+
       before do
-        @taggable1 = InheritingTaggableModel.create!(:name => "InheritingTaggable 1")
-        @taggable2 = InheritingTaggableModel.create!(:name => "InheritingTaggable 2")
-        @taggable3 = InheritingTaggableModel.create!(:name => "InheritingTaggable 3")
-        @taggable4 = TaggableModel.create!(:name => "Taggable 4")
+        taggable1.tag_list = "one, two"
+        taggable1.save!
 
-        @taggable1.tag_list = "one, two"
-        @taggable1.save
+        taggable2.tag_list = "three, four"
+        taggable2.save!
 
-        @taggable2.tag_list = "three, four"
-        @taggable2.save
+        taggable3.tag_list = "one, four"
+        taggable3.save!
 
-        @taggable3.tag_list = "one, four"
-        @taggable3.save
-
-        @taggable4.tag_list = "one, two, three, four"
-        @taggable4.save
+        taggable4.tag_list = "one, two, three, four"
+        taggable4.save!
       end
 
-      it "should find related objects based on tag names on context" do
-        @taggable1.find_related_tags.should include(@taggable3)
-        @taggable1.find_related_tags.should_not include(@taggable2)
-        @taggable1.find_related_tags.should_not include(@taggable4)
+      it "includes objects tagged with the same tags" do
+        taggable1.find_related_tags.should include(taggable3)
+      end
 
-        @taggable1.find_related_tags_for(TaggableModel).should include(@taggable3)
-        @taggable1.find_related_tags_for(TaggableModel).should_not include(@taggable2)
-        @taggable1.find_related_tags_for(TaggableModel).should include(@taggable4)
+      it "does not include objects not sharing tags" do
+        taggable1.find_related_tags.should_not include(taggable2)
+      end
+
+      it "does not include objects of different types sharing tags" do
+        taggable1.find_related_tags.should_not include(taggable4)
+      end
+
+      it "does some stuff" do
+        taggable1.find_related_tags_for(TaggableModel).should include(taggable3)
+        taggable1.find_related_tags_for(TaggableModel).should_not include(taggable2)
+        taggable1.find_related_tags_for(TaggableModel).should include(taggable4)
       end
 
       it "should not include the object itself in the list of related objects" do
-        @taggable1.find_related_tags.should_not include(@taggable1)
-        @taggable1.find_related_tags_for(InheritingTaggableModel).should_not include(@taggable1)
-        @taggable1.find_related_tags_for(TaggableModel).should_not include(@taggable1)
+        taggable1.find_related_tags.should_not include(taggable1)
+      end
+
+      it "does not include itself in filtered related objects of its own type" do
+        taggable1.find_related_tags_for(InheritingTaggableModel).should_not include(taggable1)
+      end
+
+      it "does not include itself in filtered related objects of different types" do
+        taggable1.find_related_tags_for(TaggableModel).should_not include(taggable1)
       end
     end
 
   end
 
   describe "Matching Contexts" do
-    it "should find objects with tags of matching contexts" do
-      taggable1 = TaggableModel.create!(:name => "Taggable 1")
-      taggable2 = TaggableModel.create!(:name => "Taggable 2")
-      taggable3 = TaggableModel.create!(:name => "Taggable 3")
+    context "with objects of the same type" do
+      let(:taggable1) { TaggableModel.create!(:name => "Taggable 1") }
+      let(:taggable2) { TaggableModel.create!(:name => "Taggable 2") }
+      let(:taggable3) { TaggableModel.create!(:name => "Taggable 3") }
 
-      taggable1.offering_list = "one, two"
-      taggable1.save!
-
-      taggable2.need_list = "one, two"
-      taggable2.save!
-
-      taggable3.offering_list = "one, two"
-      taggable3.save!
-
-      taggable1.find_matching_contexts(:offerings, :needs).should include(taggable2)
-      taggable1.find_matching_contexts(:offerings, :needs).should_not include(taggable3)
-    end
-
-    it "should find other related objects with tags of matching contexts" do
-      taggable1 = TaggableModel.create!(:name => "Taggable 1")
-      taggable2 = OtherTaggableModel.create!(:name => "Taggable 2")
-      taggable3 = OtherTaggableModel.create!(:name => "Taggable 3")
-
-      taggable1.offering_list = "one, two"
-      taggable1.save
-
-      taggable2.need_list = "one, two"
-      taggable2.save
-
-      taggable3.offering_list = "one, two"
-      taggable3.save
-
-      taggable1.find_matching_contexts_for(OtherTaggableModel, :offerings, :needs).should include(taggable2)
-      taggable1.find_matching_contexts_for(OtherTaggableModel, :offerings, :needs).should_not include(taggable3)
-    end
-
-    it "should not include the object itself in the list of related objects with tags of matching contexts" do
-      taggable1 = TaggableModel.create!(:name => "Taggable 1")
-      taggable2 = TaggableModel.create!(:name => "Taggable 2")
-
-      taggable1.offering_list = "one, two"
-      taggable1.need_list = "one, two"
-      taggable1.save
-
-      taggable2.need_list = "one, two"
-      taggable2.save
-
-      taggable1.find_matching_contexts_for(TaggableModel, :offerings, :needs).should include(taggable2)
-      taggable1.find_matching_contexts_for(TaggableModel, :offerings, :needs).should_not include(taggable1)
-    end
-
-    context "Inherited Models" do
       before do
-        @taggable1 = InheritingTaggableModel.create!(:name => "InheritingTaggable 1")
-        @taggable2 = InheritingTaggableModel.create!(:name => "InheritingTaggable 2")
-        @taggable3 = InheritingTaggableModel.create!(:name => "InheritingTaggable 3")
-        @taggable4 = InheritingTaggableModel.create!(:name => "InheritingTaggable 4")
-        @taggable5 = TaggableModel.create!(:name => "Taggable 5")
+        taggable1.offering_list = "one, two"
+        taggable1.save!
 
-        @taggable1.offering_list = "one, two"
-        @taggable1.need_list = "one, two"
-        @taggable1.save!
+        taggable2.need_list = "one, two"
+        taggable2.save!
 
-        @taggable2.need_list = "one, two"
-        @taggable2.save!
-
-        @taggable3.offering_list = "one, two"
-        @taggable3.save!
-
-        @taggable4.tag_list = "one, two, three, four"
-        @taggable4.save!
-
-        @taggable5.need_list = "one, two"
-        @taggable5.save!
+        taggable3.offering_list = "one, two"
+        taggable3.save!
       end
 
       it "should find objects with tags of matching contexts" do
-        @taggable1.find_matching_contexts(:offerings, :needs).should include(@taggable2)
-        @taggable1.find_matching_contexts(:offerings, :needs).should_not include(@taggable3)
-        @taggable1.find_matching_contexts(:offerings, :needs).should_not include(@taggable4)
-        @taggable1.find_matching_contexts(:offerings, :needs).should_not include(@taggable5)
-
-        @taggable1.find_matching_contexts_for(TaggableModel, :offerings, :needs).should include(@taggable2)
-        @taggable1.find_matching_contexts_for(TaggableModel, :offerings, :needs).should_not include(@taggable3)
-        @taggable1.find_matching_contexts_for(TaggableModel, :offerings, :needs).should_not include(@taggable4)
-        @taggable1.find_matching_contexts_for(TaggableModel, :offerings, :needs).should include(@taggable5)
+        taggable1.find_matching_contexts(:offerings, :needs).should include(taggable2)
       end
 
-      it "should not include the object itself in the list of related objects with tags of matching contexts" do
-        @taggable1.find_matching_contexts(:offerings, :needs).should_not include(@taggable1)
-        @taggable1.find_matching_contexts_for(InheritingTaggableModel, :offerings, :needs).should_not include(@taggable1)
-        @taggable1.find_matching_contexts_for(TaggableModel, :offerings, :needs).should_not include(@taggable1)
+      it "should not find objects with tags of matching contexts" do
+        taggable1.find_matching_contexts(:offerings, :needs).should_not include(taggable3)
+      end
+    end
+
+    context "with objects of different types" do
+      let(:taggable1) { TaggableModel.create!(:name => "Taggable 1") }
+      let(:taggable2) { OtherTaggableModel.create!(:name => "Taggable 2") }
+      let(:taggable3) { OtherTaggableModel.create!(:name => "Taggable 3") }
+
+      before do
+        taggable1.offering_list = "one, two"
+        taggable1.save!
+
+        taggable2.need_list = "one, two"
+        taggable2.save!
+
+        taggable3.offering_list = "one, two"
+        taggable3.save!
+      end
+
+      it "should find objects with tags of matching contexts" do
+        taggable1.find_matching_contexts_for(OtherTaggableModel, :offerings, :needs).should include(taggable2)
+      end
+
+      it "should not find objects with tags of matching contexts" do
+        taggable1.find_matching_contexts_for(OtherTaggableModel, :offerings, :needs).should_not include(taggable3)
+      end
+
+      it "should not find itself with objects of matching contexts" do
+        taggable1.find_matching_contexts_for(TaggableModel, :offerings, :needs).should_not include(taggable1)
+      end
+    end
+
+    context "Inherited Models" do
+      let(:taggable1) { InheritingTaggableModel.create!(:name => "InheritingTaggable 1") }
+      let(:taggable2) { InheritingTaggableModel.create!(:name => "InheritingTaggable 2") }
+      let(:taggable3) { InheritingTaggableModel.create!(:name => "InheritingTaggable 3") }
+      let(:taggable4) { InheritingTaggableModel.create!(:name => "InheritingTaggable 4") }
+      let(:taggable5) { TaggableModel.create!(:name => "Taggable 5") }
+
+      before do
+        taggable1.offering_list = "one, two"
+        taggable1.need_list = "one, two"
+        taggable1.save!
+
+        taggable2.need_list = "one, two"
+        taggable2.save!
+
+        taggable3.offering_list = "one, two"
+        taggable3.save!
+
+        taggable4.tag_list = "one, two, three, four"
+        taggable4.save!
+
+        taggable5.need_list = "one, two"
+        taggable5.save!
+      end
+
+      describe '#find_matching_contexts' do
+        specify { taggable1.find_matching_contexts(:offerings, :needs).should include(taggable2) }
+        specify { taggable1.find_matching_contexts(:offerings, :needs).should_not include(taggable3) }
+        specify { taggable1.find_matching_contexts(:offerings, :needs).should_not include(taggable4) }
+        specify { taggable1.find_matching_contexts(:offerings, :needs).should_not include(taggable5) }
+        specify { taggable1.find_matching_contexts(:offerings, :needs).should_not include(taggable1) }
+      end
+
+      describe '#find_matching_contexts_for' do
+        specify { taggable1.find_matching_contexts_for(TaggableModel, :offerings, :needs).should include(taggable2) }
+        specify { taggable1.find_matching_contexts_for(TaggableModel, :offerings, :needs).should_not include(taggable3) }
+        specify { taggable1.find_matching_contexts_for(TaggableModel, :offerings, :needs).should_not include(taggable4) }
+        specify { taggable1.find_matching_contexts_for(TaggableModel, :offerings, :needs).should include(taggable5) }
+        specify { taggable1.find_matching_contexts_for(InheritingTaggableModel, :offerings, :needs).should_not include(taggable1) }
+        specify { taggable1.find_matching_contexts_for(TaggableModel, :offerings, :needs).should_not include(taggable1) }
       end
     end
   end
@@ -371,15 +417,15 @@ describe "Acts As Taggable On" do
     end
 
     it "should not raise an error when passed nil" do
-      lambda {
+      expect {
         TaggableModel.acts_as_taggable_on()
-      }.should_not raise_error
+      }.to_not raise_error
     end
 
     it "should not raise an error when passed [nil]" do
-      lambda {
+      expect {
         TaggableModel.acts_as_taggable_on([nil])
-      }.should_not raise_error
+      }.to_not raise_error
     end
   end
 

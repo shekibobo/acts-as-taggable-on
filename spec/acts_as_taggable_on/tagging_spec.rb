@@ -12,7 +12,7 @@ describe ActsAsTaggableOn::Tagging do
     @tagging.context = "tags"
 
     @tagging.should_not be_valid
-    
+
     @tagging.errors[:tag_id].should == ["can't be blank"]
   end
 
@@ -20,9 +20,9 @@ describe ActsAsTaggableOn::Tagging do
     @taggable = TaggableModel.create(:name => "Bob Jones")
     @tag = ActsAsTaggableOn::Tag.create(:name => "awesome")
 
-    lambda {
+    expect {
       2.times { ActsAsTaggableOn::Tagging.create(:taggable => @taggable, :tag => @tag, :context => 'tags') }
-    }.should change(ActsAsTaggableOn::Tagging, :count).by(1)
+    }.to change(ActsAsTaggableOn::Tagging, :count).by(1)
   end
-  
+
 end

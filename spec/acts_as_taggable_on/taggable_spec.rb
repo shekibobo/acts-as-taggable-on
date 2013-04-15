@@ -41,9 +41,9 @@ describe "Taggable To Preserve Order" do
     @taggable.tag_list = "rails, ruby, css"
     @taggable.instance_variable_get("@tag_list").instance_of?(ActsAsTaggableOn::TagList).should be_true
 
-    lambda {
+    expect {
       @taggable.save
-    }.should change(ActsAsTaggableOn::Tag, :count).by(3)
+    }.to change(ActsAsTaggableOn::Tag, :count).by(3)
 
     @taggable.reload
     @taggable.tag_list.should == %w(rails ruby css)
@@ -75,9 +75,9 @@ describe "Taggable To Preserve Order" do
     @taggable.tag_list = "pow, ruby, rails"
     @taggable.instance_variable_get("@tag_list").instance_of?(ActsAsTaggableOn::TagList).should be_true
 
-    lambda {
+    expect {
       @taggable.save
-    }.should change(ActsAsTaggableOn::Tag, :count).by(3)
+    }.to change(ActsAsTaggableOn::Tag, :count).by(3)
 
     @taggable.reload
     @taggable.tags.map{|t| t.name}.should == %w(pow ruby rails)
@@ -153,9 +153,9 @@ describe "Taggable" do
     @taggable.skill_list = "ruby, rails, css"
     @taggable.instance_variable_get("@skill_list").instance_of?(ActsAsTaggableOn::TagList).should be_true
 
-    lambda {
+    expect {
       @taggable.save
-    }.should change(ActsAsTaggableOn::Tag, :count).by(3)
+    }.to change(ActsAsTaggableOn::Tag, :count).by(3)
 
     @taggable.reload
     @taggable.skill_list.sort.should == %w(ruby rails css).sort
@@ -428,11 +428,11 @@ describe "Taggable" do
 
   it "should not create duplicate taggings" do
     bob = TaggableModel.create(:name => "Bob")
-    lambda {
+    expect {
       bob.tag_list << "happier"
       bob.tag_list << "happier"
       bob.save
-    }.should change(ActsAsTaggableOn::Tagging, :count).by(1)
+    }.to change(ActsAsTaggableOn::Tagging, :count).by(1)
   end
 
   describe "Associations" do

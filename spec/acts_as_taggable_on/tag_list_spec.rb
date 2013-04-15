@@ -67,8 +67,8 @@ describe ActsAsTaggableOn::TagList do
 
     it "should be able to call to_s on a frozen tag list" do
       tag_list.freeze
-      lambda { tag_list.add("cool","rad,bodacious") }.should raise_error
-      lambda { tag_list.to_s }.should_not raise_error
+      expect { tag_list.add("cool","rad,bodacious") }.to raise_error
+      expect { tag_list.to_s }.to_not raise_error
     end
   end
 
@@ -93,11 +93,11 @@ describe ActsAsTaggableOn::TagList do
   end
 
   describe "Multiple Delimiter" do
-    before do 
+    before do
       @old_delimiter = ActsAsTaggableOn.delimiter
     end
 
-    after do 
+    after do
       ActsAsTaggableOn.delimiter = @old_delimiter
     end
 
@@ -107,7 +107,7 @@ describe ActsAsTaggableOn::TagList do
       tag_list.to_s.should == 'cool, data, I, have'
     end
 
-    it "should escape quote" do 
+    it "should escape quote" do
       ActsAsTaggableOn.delimiter = [',', ' ', '\|']
       tag_list = ActsAsTaggableOn::TagList.from "'I have'|cool, data"
       tag_list.to_s.should == '"I have", cool, data'
@@ -116,7 +116,7 @@ describe ActsAsTaggableOn::TagList do
       tag_list.to_s.should == '"I, have", cool, data'
     end
 
-    it "should work for utf8 delimiter and long delimiter" do 
+    it "should work for utf8 delimiter and long delimiter" do
       ActsAsTaggableOn.delimiter = ['，', '的', '可能是']
       tag_list = ActsAsTaggableOn::TagList.from "我的东西可能是不见了，还好有备份"
       tag_list.to_s.should == "我， 东西， 不见了， 还好有备份"

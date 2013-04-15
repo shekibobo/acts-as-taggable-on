@@ -33,10 +33,10 @@ describe "Tagger" do
 
   it "should not overlap tags from different taggers" do
     @user2 = TaggableUser.new
-    lambda{
+    expect {
       @user.tag(@taggable, :with => 'ruby, scheme', :on => :tags)
       @user2.tag(@taggable, :with => 'java, python, lisp, ruby', :on => :tags)
-    }.should change(ActsAsTaggableOn::Tagging, :count).by(6)
+    }.to change(ActsAsTaggableOn::Tagging, :count).by(6)
 
     [@user, @user2, @taggable].each(&:reload)
 
@@ -55,9 +55,9 @@ describe "Tagger" do
     @user2.tag(@taggable, :with => 'java, python, lisp, ruby', :on => :tags)
     @user.tag(@taggable, :with => 'ruby, scheme', :on => :tags)
 
-    lambda {
+    expect {
       @user2.tag(@taggable, :with => 'java, python, lisp', :on => :tags)
-    }.should change(ActsAsTaggableOn::Tagging, :count).by(-1)
+    }.to change(ActsAsTaggableOn::Tagging, :count).by(-1)
 
     [@user, @user2, @taggable].each(&:reload)
 
@@ -74,9 +74,9 @@ describe "Tagger" do
     @user.tag(@taggable, :with => 'awesome', :on => :tags)
     @user2.tag(@taggable, :with => 'awesome, epic', :on => :tags)
 
-    lambda {
+    expect {
       @user2.tag(@taggable, :with => 'epic', :on => :tags)
-    }.should change(ActsAsTaggableOn::Tagging, :count).by(-1)
+    }.to change(ActsAsTaggableOn::Tagging, :count).by(-1)
 
     @taggable.reload
     @taggable.all_tags_list.should include('awesome')
@@ -91,9 +91,9 @@ describe "Tagger" do
     @taggable.tag_list.should == %w(ruby)
     @taggable.all_tags_list.sort.should == %w(ruby scheme).sort
 
-    lambda {
+    expect {
       @taggable.update_attributes(:tag_list => "")
-    }.should change(ActsAsTaggableOn::Tagging, :count).by(-1)
+    }.to change(ActsAsTaggableOn::Tagging, :count).by(-1)
 
     @taggable.tag_list.should == []
     @taggable.all_tags_list.sort.should == %w(ruby scheme).sort
@@ -104,9 +104,9 @@ describe "Tagger" do
   end
 
   it "should skip save if skip_save is passed as option" do
-    lambda {
+    expect {
       @user.tag(@taggable, :with => 'epic', :on => :tags, :skip_save => true)
-    }.should_not change(ActsAsTaggableOn::Tagging, :count)
+    }.to_not change(ActsAsTaggableOn::Tagging, :count)
   end
 
   describe "Single Table Inheritance" do
