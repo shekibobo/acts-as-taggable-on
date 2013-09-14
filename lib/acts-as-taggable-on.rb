@@ -7,29 +7,33 @@ require "digest/sha1"
 $LOAD_PATH.unshift(File.dirname(__FILE__))
 
 module ActsAsTaggableOn
-  mattr_accessor :delimiter
   @@delimiter = ','
-
-  mattr_accessor :force_lowercase
   @@force_lowercase = false
-
-  mattr_accessor :force_parameterize
   @@force_parameterize = false
-
-  mattr_accessor :strict_case_match
   @@strict_case_match = false
+  @@remove_unused_tags = false
 
-  mattr_accessor :remove_unused_tags
-  self.remove_unused_tags = false
+  class << self
+    attr_accessor :delimiter
 
-  def self.glue
-    delimiter = @@delimiter.kind_of?(Array) ? @@delimiter[0] : @@delimiter
-    delimiter.ends_with?(" ") ? delimiter : "#{delimiter} "
+    attr_accessor :force_lowercase
+
+    attr_accessor :force_parameterize
+
+    attr_accessor :strict_case_match
+
+    attr_accessor :remove_unused_tags
+
+    def glue
+      delimiter = @@delimiter.kind_of?(Array) ? @@delimiter[0] : @@delimiter
+      delimiter.ends_with?(" ") ? delimiter : "#{delimiter} "
+    end
+
+    def setup
+      yield self
+    end
   end
 
-  def self.setup
-    yield self
-  end
 end
 
 
